@@ -14,7 +14,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   CommentActions.init({
-    action: DataTypes.STRING
+    id:{ type: DataTypes.INTEGER, primaryKey: true},
+    action: DataTypes.STRING,
+    UserId: DataTypes.INTEGER,
+    CommentId:DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'CommentActions',

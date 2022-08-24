@@ -11,15 +11,16 @@ const jwtDecode = require("jwt-decode");
 dotenv.config();
 const app = exp();
 const sequelize = require("./root");
-const UsersTable = require("./models/userModel");
-const CommentsTable = require("./models/commentModel");
-const PostsTable = require("./models/postModel");
-const CommentActionsTable = require("./models/commentActionModel");
-const PostActionsTable = require("./models/postActionModel");
-const ReplyActionsTable = require("./models/replyActionModel");
-const ReplyTable = require("./models/replyModel");
-const SavedPostsTable = require("./models/savedPostsModel");
-const CommentReplyTable = require("./models/commentReplyModel");
+const index = require("./models/index");
+// const index.Users = require("./models/users");
+// // const index.Comments = require("./models/comments");
+// const index.posts = require("./models/posts");
+// const index.CommentActions = require("./models/commentactions");
+// const index.PostActions = require("./models/postactions");
+// const index.ReplyActions = require("./models/replyactions");
+// const index.Replies = require("./models/replies");
+// const index.SavedPOsts = require("./models/savedposts");
+// const index.CommentReplies = require("./models/commentreplies");
 // const process = require("./jwt.env");
 app.use(cors({
     origin: [
@@ -40,31 +41,31 @@ app.use(cookieParser());
 //     )
 //     next()
 //   })
-UsersTable.hasMany(PostsTable);
-PostsTable.belongsTo(UsersTable);
-UsersTable.hasMany(CommentsTable);
-PostsTable.hasMany(CommentsTable);
-CommentsTable.belongsTo(PostsTable);
-UsersTable.hasMany(SavedPostsTable);
-SavedPostsTable.belongsTo(UsersTable);
-PostsTable.hasMany(SavedPostsTable);
-SavedPostsTable.belongsTo(PostsTable);
-PostsTable.hasMany(PostActionsTable);
-UsersTable.hasMany(PostActionsTable);
-PostActionsTable.belongsTo(UsersTable);
-UsersTable.hasMany(CommentActionsTable);
-CommentActionsTable.belongsTo(UsersTable);
-UsersTable.hasMany(ReplyActionsTable);
-ReplyActionsTable.belongsTo(UsersTable);
-PostActionsTable.belongsTo(PostsTable);
-CommentsTable.hasMany(CommentActionsTable);
-CommentActionsTable.belongsTo(CommentsTable);
-ReplyTable.hasMany(ReplyActionsTable);
-ReplyActionsTable.belongsTo(ReplyTable);
-CommentsTable.hasMany(CommentReplyTable);
-CommentReplyTable.belongsTo(CommentsTable);
-ReplyTable.hasOne(CommentReplyTable);
-CommentReplyTable.belongsTo(ReplyTable);
+// index.Users.hasMany(index.posts);
+// index.posts.belongsTo(index.Users);
+// index.Users.hasMany(index.Comments);
+// index.posts.hasMany(index.Comments);
+// index.Comments.belongsTo(index.posts);
+// index.Users.hasMany(index.SavedPOsts);
+// index.SavedPOsts.belongsTo(index.Users);
+// index.posts.hasMany(index.SavedPOsts);
+// index.SavedPOsts.belongsTo(index.posts);
+// index.posts.hasMany(index.PostActions);
+// index.Users.hasMany(index.PostActions);
+// index.PostActions.belongsTo(index.Users);
+// index.Users.hasMany(index.CommentActions);
+// index.CommentActions.belongsTo(index.Users);
+// index.Users.hasMany(index.ReplyActions);
+// index.ReplyActions.belongsTo(index.Users);
+// index.PostActions.belongsTo(index.posts);
+// index.Comments.hasMany(index.CommentActions);
+// index.CommentActions.belongsTo(index.Comments);
+// index.Replies.hasMany(index.ReplyActions);
+// index.ReplyActions.belongsTo(index.Replies);
+// index.Comments.hasMany(index.CommentReplies);
+// index.CommentReplies.belongsTo(index.Comments);
+// index.Replies.hasOne(index.CommentReplies);
+// index.CommentReplies.belongsTo(index.Replies);
 sequelize.sync();
 // const conn = mysql.createConnection({
 //     host: 'localhost',
@@ -76,11 +77,15 @@ sequelize.sync();
 app.post('/signUp', (req, res) => {
     console.log(req.body);
     let data = { userName: req.body.uName, mailId: req.body.mid, contactNo: req.body.cno, password: req.body.pass };
-    UsersTable.findAll({ where: { mailId: req.body.mid } }).
+    console.log("sign");
+    index.Users.findAll({attributes: ['id','userName','mailId'], where: { mailId: req.body.mid } }).
         then(result => {
+            console.log("sign");
+            console.log(data);
+            console.log(result);
             let status = result.length > 0 ? false : true;
             if (status) {
-                UsersTable.create(data).
+                index.Users.create(data).
                     then((result) => {
                         console.log(result.id);
                         let jwtKey = '2de778eeb26d0f50756a8a8be12ae8bead2fa79d93dfebed39fc87570f4e1633bb65571dea5246af1df179ed0186badc894d4e4fbf799b84d41a9eb722f9f8ae';
@@ -96,45 +101,84 @@ app.post('/signUp', (req, res) => {
             }
         })
 })
-app.get('/profilePosts', (req, res) => {
+app.post('/logIn', (req, res) => {
+    console.log(req.body);
+    let data = {mailId: req.body.mid, password: req.body.pass };
+    console.log("sign");
+    index.Users.findOne({attributes: ['id','userName','mailId'],where: data }).
+        then(result => {
+            console.log("sign");
+            console.log(data);
+            console.log(result);
+            let status = result ? true : false;
+            if (status) {
+                // index.Users.create(data).
+                //     then((result) => {
+                        console.log(result.id);
+                        let jwtKey = '2de778eeb26d0f50756a8a8be12ae8bead2fa79d93dfebed39fc87570f4e1633bb65571dea5246af1df179ed0186badc894d4e4fbf799b84d41a9eb722f9f8ae';
+                        // console.log(jwtKey);
+                        let token = jwt.sign({ mailId: req.body.mid, userId: result.id }, jwtKey);
+                        res.header('Access-Control-Allow-Credentials', true);
+                        res.cookie("token", token, { maxAge: 9000000000, httpOnly: false })
+                        res.send(JSON.stringify({ status: status, token: token }));
+                    // })
+            }
+            else {
+                res.send(JSON.stringify({ status: status, msg: "No such User!" }))
+            }
+        })
+})
+app.get('/allPosts', (req, res) => {
     //specify req.body.userdetails
     console.log(req.cookies['token']);
     // const postActions;
     let userId = jwtDecode(req.cookies['token']).userId;
+    console.log("token");
+    console.log(userId);
     let data = {
-        where: {UserId: userId},
-        limit: 15, order: [['updatedAt', 'DESC']], include: [
+        // where: { UserId: userId},
+        limit: 15,
+         order: [['updatedAt', 'DESC']], include: [
             {
-                model: CommentsTable,
+                model: index.Comments,
+                // where: { isDeleted: false},
+                // required: false,
+                // paranoid: false,
                 include: [
                     {
-                        model: CommentActionsTable
+                        model: index.CommentActions
                     },
                 ]
             }, {
-                model: CommentsTable,
+                model: index.Comments,
+                // where: { isDeleted: false},
                 include: [
-
                     {
-                        model: CommentReplyTable,
+                        model: index.CommentReplies,
+                        // where: { isDeleted: false},
                         include: [
                             {
-                                model: ReplyTable,
+                                model: index.Replies,
                                 include: [
-                                    { model: ReplyActionsTable }
+                                    { model: index.ReplyActions }
                                 ]
                             },
                         ]
                     },
                 ]
             }, {
-                model: PostActionsTable
+                model: index.PostActions
             }
         ]
     };
-    PostsTable.findAll(data).
+    const userArray = [];
+    index.posts.findAll(data).
         then((result5) => {
-            res.send(JSON.stringify({ postComments: result5, userId: userId }));
+            console.log("find");
+            // console.log(result5.map((e) => {userArray.push(e.dataValues.UserId)}));
+            index.Followers.findAll({attributes: ['id','user','follower'],where: {follower: userId,isFollowing: true}}).then((result2) => {
+                res.send(JSON.stringify({ postComments: result5, userId: userId,followers: result2 }));
+            })
         })
 })
 app.get('/ownPosts', (req, res) => {
@@ -142,37 +186,37 @@ app.get('/ownPosts', (req, res) => {
     // const postActions;
     let userId = jwtDecode(req.cookies['token']).userId;
     let data = {
-        where: {UserId: userId},
+        where: { UserId: userId},
         limit: 15, order: [['updatedAt', 'DESC']], include: [
             {
-                model: CommentsTable,
+                model: index.Comments,
                 include: [
                     {
-                        model: CommentActionsTable
+                        model: index.CommentActions
                     },
                 ]
             }, {
-                model: CommentsTable,
+                model: index.Comments,
                 include: [
 
                     {
-                        model: CommentReplyTable,
+                        model: index.CommentReplies,
                         include: [
                             {
-                                model: ReplyTable,
+                                model: index.Replies,
                                 include: [
-                                    { model: ReplyActionsTable }
+                                    { model: index.ReplyActions }
                                 ]
                             },
                         ]
                     },
                 ]
             }, {
-                model: PostActionsTable
+                model: index.PostActions
             }
         ]
     };
-    PostsTable.findAll(data).
+    index.posts.findAll(data).
         then((result5) => {
             res.send(JSON.stringify({ postComments: result5, userId: userId }));
         })
@@ -183,7 +227,7 @@ app.post('/makePost', (req, res) => {
     let userId = jwtDecode(req.cookies['token']).userId;
     // console.log(mail);
     let data = { post: req.body.post, UserId: userId };
-    PostsTable.create(data).
+    index.posts.create(data).
         then((result) => {
             res.send(JSON.stringify({ status: result }));
         })
@@ -195,9 +239,10 @@ app.post('/makeReply', (req, res) => {
     let data = { comment: req.body.comment, UserId: userId, PostId: req.body.postId };
     // let data1 = {comment: req.body.comment,UserId: userId,PostId: req.body.postId};
     if (req.body.type === "reply") {
-        ReplyTable.create(data).
+        index.Replies.create(data).
             then((result) => {
-                CommentReplyTable.create({ CommentId: req.body.commentId, ReplyId: result.id }).
+                console.log(result);
+                index.CommentReplies.create({ CommentId: req.body.commentId, UserId: userId, ReplyId: result.id }).
                     then((result1) => {
                         res.send(JSON.stringify({ result: result }));
 
@@ -207,7 +252,7 @@ app.post('/makeReply', (req, res) => {
             })
     }
     else {
-        CommentsTable.create(data).
+        index.Comments.create(data).
             then((result) => {
                 res.send(JSON.stringify({ result: result }));
             })
@@ -220,11 +265,11 @@ app.post('/makeReply', (req, res) => {
 //     // console.log(mail);
 //     let data = {comment: req.body.comment,type: req.body.type,UserId: userId,PostId: req.body.postId,replyFor: req.body.commentId};
 //     // let data1 = {comment: req.body.comment,UserId: userId,PostId: req.body.postId};
-//     CommentsTable.create(data).
+//     index.Comments.create(data).
 //         then((result) => {
 //                 res.send(JSON.stringify({result : result}));
 //             // if(req.body.type === "reply"){
-//             //     CommentsTable.update({reply: result.id},{where: {id:req.body.commentId}}).then((result2)=>{
+//             //     index.Comments.update({reply: result.id},{where: {id:req.body.commentId}}).then((result2)=>{
 //             //         res.send(JSON.stringify({result : result}));
 //             //     })        
 //             // }
@@ -235,74 +280,97 @@ app.post('/makeReply', (req, res) => {
 // })
 app.post('/deleteReply', (req, res) => {
     let userId = jwtDecode(req.cookies['token']).userId;
-    CommentReplyTable.destroy({ where: { ReplyId: req.body.replyId, UserId: userId  } }).then(() => {
-    ReplyTable.destroy({ where: { id: req.body.replyId } }).then((result123) => {
-        ReplyActionsTable.destroy({ where: { ReplyId: req.body.replyId } }).then(() => {
-            res.send(JSON.stringify({ userId: userId }));
+    index.CommentReplies.destroy({ where: { ReplyId: req.body.replyId, UserId: userId } }).then(() => {
+        // index.Replies.destroy({ where: { id: req.body.replyId } }).then((result123) => {
+        //     index.ReplyActions.destroy({ where: { ReplyId: req.body.replyId } }).then(() => {
+        res.send(JSON.stringify({ userId: userId }));
+    })
+    // }) })
+})
+app.post('/savePost', (req, res) => {
+    let userId = jwtDecode(req.cookies['token']).userId;
+    console.log({ UserId: userId, PostId: req.body.postId});
+    index.SavedPOsts.findAll({where: { UserId: userId, PostId: req.body.postId}}).
+        then((result) => {
+            console.log("save");
+            console.log(result);
+            console.log(result.length);
+            if (result.length == 0) {
+                index.SavedPOsts.create({ UserId: userId, PostId: req.body.postId }).
+                    then(() => {
+                        res.send(JSON.stringify({ msg: "Post has been saved!" }));
+                    })
+            } else {
+                res.send(JSON.stringify({ msg: "Post has been saved Already!" }));
+            }
         })
-    }) })
 })
-app.post('/savePost',(req,res)=>{
-    SavedPostsTable.findAll({UserId: req.body.userId, PostId: req.body.postId}).
-    then((result) => {
-        if(result.length == 0){
-        SavedPostsTable.create({UserId: req.body.userId, PostId: req.body.postId}).
-        then(() => {
-            res.send(JSON.stringify({ msg: "Post has been saved!" }));
-        })  
-    }else{
-        res.send(JSON.stringify({ msg: "Post has been saved Already!" }));
-    }
-    })    
+app.post('/follow',(req,res) => {
+    const data = {user: req.body.userId,follower:req.body.followerId};
+    console.log(data);
+    index.Followers.findOne({attributes:['id','isFollowing'],where: data}).then((result)=>{
+        console.log("f");
+        console.log(result);
+        if(result){
+            result.update({isFollowing: !(result.dataValues.isFollowing)}).then(() => {
+                res.send(JSON.stringify({msg: "Updated successfully!"}));
+            })
+        }
+        else{
+            index.Followers.create(data).then(() => {
+                res.send(JSON.stringify({msg: "Followed successfully!"}));
+            })
+        }
+    })
 })
-app.get('/mySavedPosts',(req,res)=>{
+app.get('/mySavedPosts', (req, res) => {
     console.log(req.cookies['token']);
     let userId = jwtDecode(req.cookies['token']).userId;
     let data = {
-        where: {UserId: userId},
+        where: { UserId: userId},
         // limit: 15, order: [['updatedAt', 'DESC']], 
         include: [
             {
-                model: PostsTable,
-                include : [
+                model: index.posts,
+                include: [
                     {
-                        model: CommentsTable,
+                        model: index.Comments,
                         include: [
                             {
-                                model: CommentActionsTable
+                                model: index.CommentActions
                             },
                         ]
                     }, {
-                        model: CommentsTable,
+                        model: index.Comments,
                         include: [
-        
+
                             {
-                                model: CommentReplyTable,
+                                model: index.CommentReplies,
                                 include: [
                                     {
-                                        model: ReplyTable,
+                                        model: index.Replies,
                                         include: [
-                                            { model: ReplyActionsTable }
+                                            { model: index.ReplyActions }
                                         ]
                                     },
                                 ]
                             },
                         ]
                     }, {
-                        model: PostActionsTable
+                        model: index.PostActions
                     }]
             },
         ]
     };
-    SavedPostsTable.findAll(data).
+    index.SavedPOsts.findAll(data).
         then((result5) => {
             res.send(JSON.stringify({ postComments: result5, userId: userId }));
         })
 
 })
-app.post('/deleteFromSavedPosts',(req,res)=>{
+app.post('/deleteFromSavedPosts', (req, res) => {
     let userId = jwtDecode(req.cookies['token']).userId;
-    SavedPostsTable.destroy({where: {UserId: userId,PostId: req.body.postId}}).then(()=>{
+    index.posts.destroy({ where: { UserId: userId, PostId: req.body.postId } }).then(() => {
         res.send(JSON.stringify({ msg: "Post has been removed from Saved Posts!" }));
     })
 
@@ -310,19 +378,19 @@ app.post('/deleteFromSavedPosts',(req,res)=>{
 app.post('/deleteComment', (req, res) => {
     let userId = jwtDecode(req.cookies['token']).userId;
     let data = {
-        where: { UserId: userId },
+        where: { UserId: userId},
         // attributes: ['id', 'comments.id'], 
         include: [
             {
-                model: CommentActionsTable
+                model: index.CommentActions
             },
             {
-                model: CommentReplyTable,
+                model: index.CommentReplies,
                 include: [
                     {
-                        model: ReplyTable,
+                        model: index.Replies,
                         include: [
-                            { model: ReplyActionsTable }
+                            { model: index.ReplyActions }
                         ]
                     },
                 ]
@@ -330,65 +398,65 @@ app.post('/deleteComment', (req, res) => {
         ],
     };
     let replyArray = [];
-    CommentsTable.findAll(data).
+    index.Comments.findAll(data).
         then((result5) => {
             console.log(result5[0].dataValues);
             result5[0].dataValues.CommentReplies.forEach(el => {
                 console.log(el);
                 replyArray.push(el.dataValues.id);
             })
-            CommentReplyTable.destroy({ where: { id: replyArray } }).then(() => {
-                ReplyTable.destroy({ where: { id: replyArray } }).then((result123) => {
-                    ReplyActionsTable.destroy({ where: { id: replyArray } }).then(() => {
-                        CommentsTable.destroy({ where: { id: req.body.commentId } }).then(() => {
-                            CommentActionsTable.destroy({ where: { id: req.body.commentId } }).then(() => {
-                                res.send(JSON.stringify({ postComments: result5, userId: userId }));
-                            })
-                        })
-                    })
-                    console.log(result123);
+            index.CommentReplies.destroy({ where: { id: replyArray } }).then(() => {
+                // index.Replies.destroy({ where: { id: replyArray } }).then((result123) => {
+                //     index.ReplyActions.destroy({ where: { id: replyArray } }).then(() => {
+                index.Comments.destroy({ where: { id: req.body.commentId } }).then(() => {
+                    // index.CommentActions.destroy({ where: { id: req.body.commentId } }).then(() => {
+                    res.send(JSON.stringify({ postComments: result5, userId: userId,replyArray: replyArray }));
+                    // })
                 })
             })
+            // console.log(result123);
         })
-
 })
+// })})
 
 app.post('/deletePost', (req, res) => {
     let userId = jwtDecode(req.cookies['token']).userId;
     let data = {
-        where: { UserId: userId },
-        attributes: ['id', 'comments.id'], include: [
+        where: { UserId: userId},
+        // attributes: ['id', 'comments.id'],
+         include: [
             {
-                model: CommentsTable,
+                model: index.Comments,
                 include: [
                     {
-                        model: CommentActionsTable
+                        model: index.CommentActions
                     },
                 ]
             }, {
-                model: CommentsTable,
+                model: index.Comments,
                 include: [
 
                     {
-                        model: CommentReplyTable,
+                        model: index.CommentReplies,
                         include: [
                             {
-                                model: ReplyTable,
+                                model: index.Replies,
                                 include: [
-                                    { model: ReplyActionsTable }
+                                    { model: index.ReplyActions }
                                 ]
                             },
                         ]
                     },
                 ]
             }, {
-                model: PostActionsTable
+                model: index.PostActions
             }
         ],
     };
     let commentArray = [];
     let replyArray = [];
-    PostsTable.findAll(data).
+    console.log("hiingaaa");
+    index.posts.findAll(data).
         then((result5) => {
             console.log(result5[0].dataValues);
             result5[0].dataValues.Comments.forEach(element => {
@@ -398,39 +466,40 @@ app.post('/deletePost', (req, res) => {
                 element.dataValues.CommentReplies.forEach(el => {
                     console.log(el);
                     replyArray.push(el.dataValues.id);
+                    
                 })
-            });
-            CommentReplyTable.destroy({ where: { id: replyArray } }).then(() => { })
-            ReplyTable.destroy({ where: { id: replyArray } }).then((result123) => {
-                ReplyActionsTable.destroy({ where: { id: replyArray } }).then(() => {
-                    CommentsTable.destroy({ where: { id: commentArray } }).then(() => {
-                        CommentActionsTable.destroy({ where: { id: commentArray } }).then(() => {
-                            PostsTable.destroy({ where: { id: req.body.postId } }).then(() => {
-                                PostActionsTable.destroy({ where: { id: req.body.postId } }).then((r) => {
-                                    res.send(JSON.stringify({ postComments: result5, userId: userId }));
-
-                                })
-                            })
-                        })
-                    })
-                })
-                console.log(result123);
             })
-        })
+                    index.CommentReplies.destroy({ where: { id: replyArray } }).then(() => { })
+                    // index.Replies.destroy({ where: { id: replyArray } }).then((result123) => {
+                    //     index.ReplyActions.destroy({ where: { id: replyArray } }).then(() => {
+                    index.Comments.destroy({ where: { id: commentArray } }).then(() => {
+                        // index.CommentActions.destroy({ where: { id: commentArray } }).then(() => {
+                        index.posts.destroy({ where: { id: req.body.postId } }).then(() => {
+                            // index.PostActions.destroy({ where: { id: req.body.postId } }).then((r) => {
+                            res.send(JSON.stringify({ postComments: result5, userId: userId }));
+        
+                            // })
+                        })
+                        })
+            })
+        // })
+    // console.log(result123);
+    // })
+    // })
     // console.log(mail);
     // let data = { id : req.body.postId, UserId: userId };
-    // CommentsTable.findAll({ where: { PostId : req.body.postId, UserId: userId },attributes: ['id'] }).    
+    // index.Comments.findAll({ where: { PostId : req.body.postId, UserId: userId },attributes: ['id'] }).    
     //     then((result) => {
     //         console.log(result);
     //         res.send(JSON.stringify({ status: result }));
     //     })
-    // CommentsTable.destroy({ where: { PostId : req.body.postId, UserId: userId } }).    
+    // index.Comments.destroy({ where: { PostId : req.body.postId, UserId: userId } }).    
     //     then((result) => {
-    //         PostsTable.destroy({ where: data }).
+    //         index.posts.destroy({ where: data }).
     //         then((r1) => {
     //             console.log("r1");
     //             console.log(r1);
-    //             // ReplyTable.destroy({ where: { PostId : req.body.postId, UserId: userId } }).
+    //             // index.Replies.destroy({ where: { PostId : req.body.postId, UserId: userId } }).
     //             // then(() => {
     //                 res.send(JSON.stringify({ status: result }));
     //             // })
@@ -439,16 +508,18 @@ app.post('/deletePost', (req, res) => {
 })
 function postAction(req, res) {
     let userId = jwtDecode(req.cookies['token']).userId;
+    console.log("hlo");
+    console.log(userId);
     var reqData = req.body;
     let data = { PostId: reqData.stuffId, UserId: userId };
     let data2 = { action: reqData.action, PostId: reqData.stuffId, UserId: userId };
     if (reqData.toDelete) {
-        PostActionsTable.destroy({ where: data2 }).then(() => {
+        index.PostActions.destroy({ where: data2 }).then(() => {
             res.send(JSON.stringify({ status: "success" }));
         })
     }
     else {
-        PostActionsTable.findOne({ where: data }).
+        index.PostActions.findOne({ where: data }).
             then((result) => {
                 console.log("hi");
                 console.log(result);
@@ -459,8 +530,10 @@ function postAction(req, res) {
                         })
                 }
                 else {
-                    PostActionsTable.create(data2).
+                    index.PostActions.create(data2).
                         then(result1 => {
+                            console.log("final");
+                            console.log(data2);
                             res.send(JSON.stringify({ status: "success" }));
                         })
                 }
@@ -475,12 +548,12 @@ function commentAction(req, res) {
     console.log(data);
     //already liked or disliked if so update else create
     if (reqData.toDelete) {
-        CommentActionsTable.destroy({ where: data2 }).then(() => {
+        index.CommentActions.destroy({ where: data2 }).then(() => {
             res.send(JSON.stringify({ status: "success" }));
         })
     }
     else {
-        CommentActionsTable.findOne({ where: data }).
+        index.CommentActions.findOne({ where: data }).
             then((result) => {
                 console.log("hi");
                 console.log(result);
@@ -491,7 +564,7 @@ function commentAction(req, res) {
                         })
                 }
                 else {
-                    CommentActionsTable.create(data2).
+                    index.CommentActions.create(data2).
                         then(result1 => {
                             res.send(JSON.stringify({ status: "success" }));
                         })
@@ -508,12 +581,12 @@ function replyAction(req, res) {
     console.log(data);
     //already liked or disliked if so update else create
     if (reqData.toDelete) {
-        ReplyActionsTable.destroy({ where: data2 }).then(() => {
+        index.ReplyActions.destroy({ where: data2 }).then(() => {
             res.send(JSON.stringify({ status: "success" }));
         })
     }
     else {
-        ReplyActionsTable.findOne({ where: data }).
+        index.ReplyActions.findOne({ where: data }).
             then((result) => {
                 console.log("hi");
                 console.log(result);
@@ -524,7 +597,7 @@ function replyAction(req, res) {
                         })
                 }
                 else {
-                    ReplyActionsTable.create(data2).
+                    index.ReplyActions.create(data2).
                         then(() => {
                             res.send(JSON.stringify({ status: "success" }));
                         })

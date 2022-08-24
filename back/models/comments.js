@@ -11,12 +11,21 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      Comments.hasMany(models.CommentActions);
+      models.CommentActions.belongsTo(Comments);
+      Comments.hasMany(models.CommentReplies);
+      models.CommentReplies.belongsTo(Comments);
     }
   }
   Comments.init({
-    comment: DataTypes.STRING
+    id:{ type: DataTypes.INTEGER, primaryKey: true},
+    comment: DataTypes.STRING,
+    UserId: DataTypes.INTEGER,
+    PostId: DataTypes.INTEGER,
+    deletedAt: {type: DataTypes.DATE}
   }, {
     sequelize,
+    paranoid: true,
     modelName: 'Comments',
   });
   return Comments;

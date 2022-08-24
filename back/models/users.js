@@ -11,11 +11,17 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      Users.hasMany(models.Posts,{foreignKey: UserId});
-      models.Posts.belongsTo(Users,{foreignKey: UserId});
+      Users.hasMany(models.posts);
+      models.posts.belongsTo(Users);
+      Users.hasMany(models.Comments);
+      models.Comments.belongsTo(Users);
+      // Users.hasMany(models.Followers);
+      // models.Followers.belongsTo(Users);
+      // models.Posts.belongsTo(Users,{through: 'SavedPosts'});
     }
   }
   Users.init({
+    id:{ type: DataTypes.INTEGER, primaryKey: true,autoIncrement: true},
     userName: DataTypes.STRING,
     mailId: DataTypes.STRING,
     contactNo: DataTypes.STRING,

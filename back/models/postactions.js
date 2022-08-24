@@ -14,7 +14,9 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   PostActions.init({
+    id:{ type: DataTypes.INTEGER, primaryKey: true},
     action: DataTypes.STRING,
+    UserId: DataTypes.INTEGER,
     PostId: DataTypes.INTEGER
   }, {
     sequelize,

@@ -142,8 +142,8 @@ return (<Fragment>
 function Dashboard(){
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [postCreate,setPostCreate] = useState(false);
-  const [postActions,setPostActions] = useState([]);
   const [postComments,setPostComments] = useState([]);
+  const [followersOf,setFollowersOf] = useState([]);
   const [doRender,setDoRender] = useState(false);
   const [userId,setUserId] = useState(null);
   useEffect(() => {
@@ -152,11 +152,12 @@ function Dashboard(){
       headers: { 'Content-Type': 'application/json' },
       credentials: "include"
     };
-    fetch("http://localhost:8080/profilePosts", req).then(response => response.json()).then(res => {
+    fetch("http://localhost:8080/allPosts", req).then(response => response.json()).then(res => {
     console.log(res);
-    setPostActions(res.postActions);
+    // setPostActions(res.postActions);
     setPostComments(res.postComments);
     setUserId(res.userId);
+    setFollowersOf(res.followers);
   })},[doRender]);
   function setRender(){
     setDoRender(prevValue => (!prevValue));
@@ -179,7 +180,20 @@ function Dashboard(){
   })
   }
     return <Fragment>
-      {postComments && postComments.map((post) => {return <Post post={post} setRender = {setRender} userId={userId} />})}
+      {postComments && postComments.map((post) => {
+        const isFollowing = followersOf.some((follower) => {
+          if(follower['user'] === post.UserId){
+            return true;
+          }
+          return false;
+        })
+      // followersOf.map((follower) => {
+      //   if(follower['user'] === post.UserId){
+      //     let isFollowing = true;
+      //   }
+      // }
+      // );
+       return <Post post={post} setRender = {setRender} userId={userId} isFollowing={isFollowing}/>})}
       <button onClick={() => {setPostCreate(true)}}>Add Post</button>
       {postCreate && <form onSubmit={handleSubmit(formValidate)}>
       <label>Post Here</label>
@@ -221,7 +235,7 @@ function Comment(props){
     {comment.CommentReplies.length !== 0 && <button onClick={()=>{setDoShowComment(prevValue => (!prevValue))}} style={{color: "blue",fontWeight:"bold",margin:"15px 0px",display:"block"}}>Show Replies</button>}
       {doShowComment && comment.CommentReplies.map((comment) => {return <Reply reply={comment} setRender = {props.setRender} userId={props.userId}  />})}
       {showComment && <MakeReply type='reply' CommentId={comment.id} PostId={props.PostId} setRender = {props.setRender} setComment={setComment}/>}
-    <button onClick={() => {deleteComment(comment.id,props.userId,props.setRender)}} className="delete sAndD">Delete</button>
+    {comment.UserId === props.userId && <button onClick={() => {deleteComment(comment.id,props.userId,props.setRender)}} className="delete sAndD">Delete</button>}
   </div>
 }
 function Reply(props){
@@ -236,7 +250,7 @@ function Reply(props){
     <FontAwesomeIcon icon={faThumbsUp} color={isLiked ? "red" : "black"}/>{like}</button>
     <button onClick={() => {performAction('dislike',reply.ReplyId,'reply',isDisLiked,props.setRender);}}>
     <FontAwesomeIcon icon={faThumbsDown} color={isDisLiked ? "red" : "black"}/>{dislike}</button>
-    <button onClick={() => {deleteReply(reply.id,props.userId,props.setRender)}} className="delete sAndD">Delete</button>
+      {reply.UserId === props.userId && <button onClick={() => {deleteReply(reply.ReplyId,props.userId,props.setRender)}} className="delete sAndD">Delete</button>}
   </div>
 }
 function performAction(action,stuffId,stuffType,toDelete,setRender){
@@ -331,7 +345,9 @@ function actionCount(param,userId){
   return {like: like,dislike: dislike,isLiked:isLiked,isDisLiked:isDisLiked};
 }
 function Post(props){
+  console.log(props);
   const post = props.post;
+  console.log(actionCount(post.PostActions,props.userId));
   const [showComment,setShowComment] = useState(false);
   const [doShowComment,setDoShowComment] = useState(false);
   let {like,dislike,isLiked,isDisLiked} = actionCount(post.PostActions,props.userId);
@@ -341,7 +357,12 @@ function Post(props){
   return <div style={{ borderBottom:"1px solid gray", padding: "20px"}}>
     <p>Post Id-{post.id}</p>
     <p>Post{post.post}</p>
-    <p>UserId - {post.UserId}</p>
+    <p>UserId - {post.UserId}-{props.isFollowing}</p>
+    
+    {props.isFollowing && <span className="isFollowing">Following</span>}
+    {props.isFollowing && <button onClick={() => {follow(post.UserId,props.userId,props.setRender)}} className="delete">UnFollow</button>}
+    {!(props.isFollowing) && <button onClick={() => {follow(post.UserId,props.userId,props.setRender)}} className="delete">Follow</button>}
+    {/* {post.UserId !== props.userId && <button onClick={() => {follow(post.UserId,props.userId,props.setRender)}} className="delete">Follow</button>} */}
     <button onClick={() => {setShowComment(true)}} className="reply">Comment</button>
     <button onClick={() => {performAction('like',post.id,'post',isLiked,props.setRender);}}>
     <FontAwesomeIcon icon={faThumbsUp} color={isLiked ? "red" : "black"}/><span className="action">{like}</span></button>
@@ -353,11 +374,26 @@ function Post(props){
     {doShowComment && post.Comments.map((comment) => {return <Comment comment={comment} setRender = {props.setRender} PostId={post.id} userId={props.userId} />})}
     <div className="sAndD">
     <button onClick={() => {savePost(post.id,post.UserId,props.setRender)}} className="save">Save</button>
-    <button onClick={() => {deletePost(post.id,post.UserId,props.setRender)}} className="delete">Delete</button></div>
+    {post.UserId === props.userId && <button onClick={() => {deletePost(post.id,post.UserId,props.setRender)}} className="delete">Delete</button>}</div>
   </div>
+}
+function follow(userId,followerId,setRender){ 
+  let val = {userId: userId,followerId:followerId};
+  console.log(val);
+  const req = {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: "include",
+  body: JSON.stringify(val)
+};
+fetch("http://localhost:8080/follow", req).then(response => response.json() ).then(res => {
+  console.log(res);
+  setRender();
+})  
 }
 function deletePost(postId,userId,setRender){ 
   let val = {postId: postId,userId: userId};
+  console.log(val);
   const req = {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -370,7 +406,8 @@ fetch("http://localhost:8080/deletePost", req).then(response => response.json() 
 })  
 }
 function savePost(postId,userId,setRender){ 
-  let val = {postId: postId,userId: userId};
+  let val = {postId: postId};
+  console.log(val);
   const req = {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -384,6 +421,7 @@ fetch("http://localhost:8080/savePost", req).then(response => response.json() ).
 }
 function deleteComment(commentId,userId,setRender){ 
   let val = {commentId: commentId,userId: userId};
+  console.log(val);
   const req = {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
